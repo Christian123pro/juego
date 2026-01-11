@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Synapse Spark</title>
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div id="app">
+        <div id="notification-area"></div>
+
+        <!-- Login Screen -->
+        <div id="login-screen">
+            <h1 class="logo">SYNAPSE SPARK</h1>
+            <div class="input-group">
+                <input type="text" id="username-input" placeholder="ENTER USERNAME" maxlength="12" />
+            </div>
+            <div class="actions">
+                <button id="create-btn" class="btn primary">CREATE ROOM</button>
+                <div class="join-area">
+                    <input type="text" id="code-input" placeholder="ROOM CODE" maxlength="4" />
+                    <button id="join-btn" class="btn secondary">JOIN</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lobby Screen -->
+        <div id="lobby-screen" class="hidden">
+            <div class="lobby-header">
+                <h2>ROOM CODE</h2>
+                <div id="room-code-display" class="glitch-text">----</div>
+            </div>
+
+            <div id="settings-area" class="settings-box">
+                <h3>GAME SETTINGS</h3>
+                <div class="setting-item">
+                    <label>ROUND TIME (SEC)</label>
+                    <input type="number" id="time-setting" value="10" min="5" max="30" disabled />
+                </div>
+                <div class="setting-item">
+                    <label>STARTING LIVES</label>
+                    <input type="number" id="lives-setting" value="3" min="1" max="5" disabled />
+                </div>
+            </div>
+
+            <div class="players-list">
+                <h3>PLAYERS</h3>
+                <ul id="players-ul"></ul>
+            </div>
+
+            <button id="start-game-btn" class="btn primary hidden">START GAME</button>
+            <div id="waiting-msg" class="waiting-text hidden">WAITING FOR HOST...</div>
+        </div>
+
+        <!-- Game Screen (Placeholder) -->
+        <div id="game-screen" class="hidden">
+            <!-- Injected by main.js -->
+        </div>
+
+    </div>
+    <script type="module" src="./main.js"></script>
+</body>
+
+</html>
