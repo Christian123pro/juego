@@ -46,8 +46,9 @@ class GameManager {
         const room = this.rooms.get(code);
         if (!room || room.state !== "LOBBY") return;
 
-        room.settings.roundTime = parseInt(settings.roundTime) || 10;
-        room.settings.startingLives = parseInt(settings.startingLives) || 3;
+        if (settings.roundTime) room.settings.roundTime = parseInt(settings.roundTime) || 10;
+        if (settings.startingLives) room.settings.startingLives = parseInt(settings.startingLives) || 3;
+        if (settings.maxPlayers) room.settings.maxPlayers = parseInt(settings.maxPlayers) || 12;
 
         // Notify all in room
         if (this.io) {
@@ -63,6 +64,33 @@ class GameManager {
 
         this.addPlayerToRoom(room, playerId, username, false);
         return { room };
+    }
+
+    kickPlayer(code, hostId, targetId) {
+        const room = this.rooms.get(code);
+        if (!room) return { error: "Room not found" };
+        if (room.hostId !== hostId) return { error: "Only host can kick" };
+        if (hostId === targetId) return { error: "Cannot kick yourself" };
+
+        if (!room.players.has(targetId)) return { error: "Player not found" };
+
+        room.players.delete(targetId);
+
+        // Notify the kicked player specifically (optional, usually disconnect handles it but we want explicit)
+        if (this.io) {
+            const targetSocket = this.io.sockets.sockets.get(targetId);
+            if (targetSocket) {
+                targetSocket.leave(code);
+                targetSocket.emit('KICKED', { message: "You have been kicked by the host." });
+            }
+
+            this.io.to(code).emit('ROOM_UPDATE', {
+                players: Array.from(room.players.values()),
+                hostId: room.hostId,
+                settings: room.settings
+            });
+        }
+        return { success: true };
     }
 
     addPlayerToRoom(room, playerId, username, isHost) {

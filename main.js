@@ -48,14 +48,18 @@ startGameBtn.addEventListener("click", () => {
     socket.emit("START_GAME", { code: currentRoomCode });
 });
 
-[timeSetting, livesSetting].forEach(el => {
+const maxPlayersSetting = document.getElementById("max-players-setting");
+
+[timeSetting, livesSetting, maxPlayersSetting].forEach(el => {
+    if (!el) return;
     el.addEventListener("change", () => {
         if (!isHost) return;
         socket.emit("UPDATE_SETTINGS", {
             code: currentRoomCode,
             settings: {
                 roundTime: timeSetting.value,
-                startingLives: livesSetting.value
+                startingLives: livesSetting.value,
+                maxPlayers: maxPlayersSetting.value
             }
         });
     });
@@ -77,6 +81,7 @@ const renderGameUI = () => {
       <div id="word-input-area">
         <input type="text" id="word-input" placeholder="TYPE WORD HERE" disabled autocomplete="off" />
         <div id="active-player-msg">WAITING...</div>
+        <div id="rival-input-display" class="rival-typing"></div> 
       </div>
     </div>
     <ul id="game-log"></ul>
@@ -140,6 +145,24 @@ socket.on("SETTINGS_UPDATED", (settings) => {
     applySettings(settings);
 });
 
+socket.on("KICKED", ({ message }) => {
+    alert(message);
+    location.reload();
+});
+
+socket.on("PLAYER_TYPING", ({ playerId, word }) => {
+    const activeMsg = document.getElementById("active-player-msg");
+    const rivalDisplay = document.getElementById("rival-input-display");
+
+    // Only show if it's NOT my turn (activeMsg says "OPPONENT'S TURN")
+    // or we can verify activePlayerId from previous state, but simplify:
+    if (activeMsg && activeMsg.innerText.includes("OPPONENT")) {
+        if (rivalDisplay) {
+            rivalDisplay.innerText = word ? `Rival is typing: ${word}` : "";
+        }
+    }
+});
+
 socket.on("NEXT_TURN", ({ activePlayerId, constraint, timeLeft, playerLives }) => {
     lobbyScreen.classList.add("hidden");
     gameScreen.classList.remove("hidden");
@@ -153,6 +176,9 @@ socket.on("NEXT_TURN", ({ activePlayerId, constraint, timeLeft, playerLives }) =
     const constraintText = document.getElementById("constraint-text");
     const activeMsg = document.getElementById("active-player-msg");
     const timerDisplay = document.getElementById("timer-display");
+    const rivalDisplay = document.getElementById("rival-input-display");
+
+    if (rivalDisplay) rivalDisplay.innerText = ""; // Clear previous typing
 
     constraintText.innerText = `CONTAINS: ${constraint}`;
     timerDisplay.innerText = timeLeft;
@@ -172,11 +198,17 @@ socket.on("NEXT_TURN", ({ activePlayerId, constraint, timeLeft, playerLives }) =
         activeMsg.style.color = "#00ffcc";
         wordInput.value = "";
 
+        // Emit typing event
+        wordInput.oninput = () => {
+            socket.emit("WORD_INPUT", { code: currentRoomCode, word: wordInput.value });
+        };
+
         wordInput.onkeydown = (e) => {
             if (e.key === 'Enter') {
                 const word = wordInput.value;
                 socket.emit('SUBMIT_WORD', { code: currentRoomCode, word });
                 wordInput.value = "";
+                socket.emit("WORD_INPUT", { code: currentRoomCode, word: "" }); // Clear remote buffer
             }
         };
     } else {
@@ -185,6 +217,7 @@ socket.on("NEXT_TURN", ({ activePlayerId, constraint, timeLeft, playerLives }) =
         activeMsg.innerText = "OPPONENT'S TURN";
         activeMsg.style.color = "#888";
         wordInput.onkeydown = null;
+        wordInput.oninput = null;
     }
 });
 
@@ -192,7 +225,6 @@ socket.on("LIFE_LOST", ({ playerId, lives }) => {
     if (playerId === socket.id) {
         currentGameLives = lives;
         updateLivesDisplay(lives);
-        // Shake screen or something
         gameScreen.classList.add("shake");
         setTimeout(() => gameScreen.classList.remove("shake"), 500);
     }
@@ -212,7 +244,6 @@ socket.on("WORD_REJECTED", ({ reason }) => {
         input.classList.add("shake");
         setTimeout(() => input.classList.remove("shake"), 500);
     }
-    // Notification could be better than alert
     console.log("Rejected:", reason);
 });
 
@@ -237,8 +268,22 @@ function renderPlayers(players, hostId) {
     playersUl.innerHTML = "";
     players.forEach(p => {
         const li = document.createElement("li");
-        li.innerText = p.username;
-        if (p.id === hostId) li.classList.add("host");
+        li.innerHTML = `<span>${p.username}</span>`;
+        if (p.id === hostId) {
+            li.classList.add("host");
+            li.innerHTML += ' 👑';
+        } else if (isHost) {
+            // Add Kick Button for host
+            const kickBtn = document.createElement("button");
+            kickBtn.innerText = "❌";
+            kickBtn.className = "kick-btn";
+            kickBtn.onclick = () => {
+                if (confirm(`Kick ${p.username}?`)) {
+                    socket.emit("KICK_PLAYER", { code: currentRoomCode, targetId: p.id });
+                }
+            };
+            li.appendChild(kickBtn);
+        }
         playersUl.appendChild(li);
     });
 }
@@ -246,10 +291,12 @@ function renderPlayers(players, hostId) {
 function enableSettings(enabled) {
     timeSetting.disabled = !enabled;
     livesSetting.disabled = !enabled;
+    if (maxPlayersSetting) maxPlayersSetting.disabled = !enabled;
 }
 
 function applySettings(settings) {
     timeSetting.value = settings.roundTime;
     livesSetting.value = settings.startingLives;
+    if (maxPlayersSetting) maxPlayersSetting.value = settings.maxPlayers || 12;
     currentGameLives = settings.startingLives;
 }

@@ -68,6 +68,19 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('KICK_PLAYER', ({ code, targetId }) => {
+        const result = gameManager.kickPlayer(code, socket.id, targetId);
+        if (result.error) {
+            socket.emit('ERROR', { message: result.error });
+        }
+    });
+
+    // Real-time typing visibility
+    socket.on('WORD_INPUT', ({ code, word }) => {
+        // Broadcast to everyone else in the room so they see what this player is typing
+        socket.to(code).emit('PLAYER_TYPING', { playerId: socket.id, word });
+    });
+
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
         const result = gameManager.removePlayer(socket.id);
