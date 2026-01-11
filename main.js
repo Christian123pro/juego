@@ -94,11 +94,16 @@ const updateLivesDisplay = (lives) => {
 // --- Socket Handlers ---
 
 socket.on("connect", () => {
-    console.log("Connected");
+    console.log("Connected to server with ID:", socket.id);
     myId = socket.id;
 });
 
+socket.on("connect_error", (err) => {
+    console.error("Socket Connection Error:", err.message);
+});
+
 socket.on("ROOM_CREATED", ({ code }) => {
+    console.log("Room created! Code:", code);
     currentRoomCode = code;
     isHost = true;
     showLobby(code);

@@ -22,18 +22,22 @@ io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
     socket.on('CREATE_ROOM', ({ username }) => {
+        console.log(`Creating room for user: ${username}`);
         const room = gameManager.createRoom(socket.id, username);
         socket.join(room.code);
         socket.emit('ROOM_CREATED', { code: room.code });
         io.to(room.code).emit('ROOM_UPDATE', {
             players: Array.from(room.players.values()),
-            hostId: room.hostId
+            hostId: room.hostId,
+            settings: room.settings
         });
     });
 
     socket.on('JOIN_ROOM', ({ code, username }) => {
+        console.log(`User ${username} joining room: ${code}`);
         const result = gameManager.joinRoom(code, socket.id, username);
         if (result.error) {
+            console.error(`Join error: ${result.error}`);
             socket.emit('ERROR', { message: result.error });
             return;
         }
@@ -41,7 +45,8 @@ io.on('connection', (socket) => {
         socket.emit('JOINED_ROOM', { code });
         io.to(code).emit('ROOM_UPDATE', {
             players: Array.from(result.room.players.values()),
-            hostId: result.room.hostId
+            hostId: result.room.hostId,
+            settings: result.room.settings
         });
     });
 
