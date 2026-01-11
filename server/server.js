@@ -8,7 +8,7 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
-        origin: "*",
+        origin: "*", // In production you should set this to your GitHub Pages URL
         methods: ["GET", "POST"]
     }
 });
@@ -16,7 +16,7 @@ const io = new Server(httpServer, {
 // Set IO in gameManager to avoid circular dependency
 gameManager.setIO(io);
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
