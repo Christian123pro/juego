@@ -1,6 +1,8 @@
 import { io } from "https://cdn.socket.io/4.8.1/socket.io.esm.min.js";
 
-const socket = io("https://juego-o91w.onrender.com");
+const socket = io("https://juego-o91w.onrender.com", {
+    timeout: 60000 // 60 seconds to allow Render's free tier to wake up
+});
 
 // State
 let myUsername = "";
@@ -69,22 +71,22 @@ const maxPlayersSetting = document.getElementById("max-players-setting");
 
 const renderGameUI = () => {
     gameScreen.innerHTML = `
-    <div class="game-header">
-      <div id="timer-display">10</div>
+    <div class="game-container">
       <div id="lives-display"></div>
-    </div>
-    <div class="main-area">
-      <div id="constraint-box">
-        <span class="label">CONSTRAINT</span>
+      
+      <div class="bomb-area">
+        <div id="timer-display">10</div>
         <h1 id="constraint-text">---</h1>
       </div>
-      <div id="word-input-area">
-        <input type="text" id="word-input" placeholder="TYPE WORD HERE" disabled autocomplete="off" />
+
+      <div class="word-input-container">
         <div id="active-player-msg">WAITING...</div>
+        <input type="text" id="word-input" placeholder="TYPE HERE..." disabled autocomplete="off" />
         <div id="rival-input-display" class="rival-typing"></div> 
       </div>
+
+      <ul id="game-log"></ul>
     </div>
-    <ul id="game-log"></ul>
   `;
     updateLivesDisplay(currentGameLives);
 };
